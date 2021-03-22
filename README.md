@@ -6,8 +6,12 @@ This GitHub repository contains the code used to process the images acquired usi
 This version of the pipelin takes as input a MicroManager folder and outputs concatenated movies (one per position).
 
 ## Data
+
 - Raw (input) data: raw data is available on Zenodo (upon publication): **URL**
-- Concatenated (output) data: available on Zenodo (upon publication): **URL**
+- Concatenated (output) data: 
+   - a series of TIFF, 16-bit files, with appropriate (ImageJ-readable) pixel sizes and timestamp overlays
+   - a series of .xls, machine-readable files, with timestamp information.
+   - available on Zenodo (upon publication): **URL**
 
 ## Requirements
 1. Use Python 3. 
@@ -15,16 +19,7 @@ This version of the pipelin takes as input a MicroManager folder and outputs con
 3. Use `pip` to install the missing libraries. We recommend running these scripts in a [virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/).
 
 ```
-pip install numpy pandas scipy matplotlib
-```
-
-**TODO** try to use it in a Vanilla Debian install :/ Export the versions / need to check if extra things are present in the chromag_helper.py
-
-The scripts loads the following: 
-```
-import os, importlib, configparser, datetime, sys, ast
-from pathlib import Path
-from skimage.external.tifffile import TiffFile, TiffWriter
+pip install numpy pandas scipy matplotlib scikit-image
 ```
 
 ## Configuration files & how-to
@@ -36,7 +31,7 @@ This file contains most of the user-tunable parameters required to run the pipel
 - `fiji_dict`: the path to the Fiji executable
 
 ## Authors
-Maxime Woringer, with inputs from multiple authors & collaborators
+Maxime Woringer, with inputs from multiple authors & collaborators, and limited & credited Stack Overflow copy-pasting.
 
 ## License
 GPLv3+, see the LICENSE file included in this repository for more details.
