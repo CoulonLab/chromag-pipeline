@@ -13135,7 +13135,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[13]:</div>
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## Imports // DO NOT EDIT</span>
@@ -13168,7 +13168,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Working with the version v1.5.0 (commit e8b5cee), last updated on Mon Mar 22 16:29:51 2021 +0100
+<pre>Working with the version v1.5.0 (commit 58a1528), last updated on Mon Mar 22 17:13:19 2021 +0100
 </pre>
 </div>
 </div>
@@ -13179,7 +13179,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[20]:</div>
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## ========      ===========</span>
@@ -13187,9 +13187,9 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 <span class="c1">## ========      ===========</span>
 <span class="c1">## All the configuration is now in the CFG files. Here, only edit the selected folder if needed</span>
 <span class="c1">## You can edit this if you want, overriden if running outside IPython // </span>
-<span class="c1"># Current options (also listed below): Array7, PFS2, 20200221</span>
+<span class="c1"># Current options (also listed below): Array7, PFS2, 20200221, L20190410, L20190415</span>
 
-<span class="n">dataset_to_run</span> <span class="o">=</span> <span class="s2">&quot;20200221&quot;</span>
+<span class="n">dataset_to_run</span> <span class="o">=</span> <span class="s2">&quot;L20190415&quot;</span>
 
 <span class="c1">## ==== DO NOT EDIT ==</span>
 
@@ -13289,27 +13289,49 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
  0: 20200221: 	 data/Maxime/concatenation/Antoine/20200221/
  1: Array7: 	 data/Maxime/concatenation/Veer/20191223 - array7/
  2: PFS2: 	 data/Maxime/concatenation/Veer/20191217 - PFS2/
-The following dataset has been selected: 20200221
+ 3: L20190410: 	 data/Maxime/concatenation/Laura/20190410/20210326/
+ 4: L20190415: 	 data/Maxime/concatenation/Laura/20190415/20210326/
+The following dataset has been selected: L20190415
 
 Available positions/sequence
-                                                   0  1  2  3  4  5  \
-Sequence                                                              
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *  *  *  *  *   
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *  *  *  *  *   
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *  *  *  *  *   
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *               
+                                                    0  1  2  3  4  5  6  7  8  \
+Sequence                                                                        
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *        *  *  *  *      
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *        *  *     *      
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *        *  *     *      
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *     *  *  *  *  *      
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *  *  *  *  *  *  *  *   
+
+                                                    9  ... 22 23 24 25 26 27  \
+Sequence                                               ...                     
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  ...     *        *  *   
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...     ...     *           *   
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...     ...     *           *   
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  ...     *        *  *   
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  ...  *  *  *  *  *  *   
+
+                                                   28 29 30  \
+Sequence                                                      
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...     *      
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...            
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...            
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *  *   
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *  *   
 
                                                                                             SequenceS  
 Sequence                                                                                               
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
-Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
+Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
 
-Available analyses: 20210318, 20200318
-Using folder: 20210318
-Found 16 files across 5 positions
-/data2/Dropbox/CoulonLab/data/Maxime/concatenation/Antoine/20200221/20210318
+[5 rows x 32 columns]
+
+Available analyses: 20210326, 20200420, 20200318
+Using folder: 20210326
+Found 90 files across 30 positions
+/data2/Dropbox/CoulonLab/data/Maxime/concatenation/Laura/20190415/20210326
 </pre>
 </div>
 </div>
@@ -13329,7 +13351,7 @@ Found 16 files across 5 positions
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[28]:</div>
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## Running the concatenation</span>
@@ -13345,15 +13367,18 @@ Found 16 files across 5 positions
 <span class="k">for</span> <span class="p">(</span><span class="n">kk</span><span class="p">,</span><span class="n">vv</span><span class="p">)</span> <span class="ow">in</span> <span class="n">posidict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
     <span class="n">vv</span>  <span class="o">=</span> <span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tf</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{:.0f}</span><span class="s2">s (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">onoff</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ii</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">time_since_beginning</span><span class="o">.</span><span class="n">values</span><span class="p">,</span><span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">forceActivated</span><span class="o">.</span><span class="n">values</span><span class="p">)]]</span>
+        <span class="c1">#[f.write(i+&quot;\n&quot;) for i in [&quot;{:.0f}s ({})&quot;.format(i, onoff[ii]) for (i,ii) in zip(ddf[kk].time_since_beginning.values,ddf[kk].forceActivated.values)]]</span>
+        <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{:.0f}</span><span class="s2">s (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">onoff</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ii</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">seconds_since_first_magnet_ON</span><span class="o">.</span><span class="n">values</span><span class="p">,</span><span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">forceActivated</span><span class="o">.</span><span class="n">values</span><span class="p">)]]</span>
+
     <span class="n">out_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s1">&#39;concatenated_Pos</span><span class="si">{}</span><span class="s1">.ome.tif&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">))</span>
     <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">tf</span><span class="p">,</span> <span class="n">out_file</span><span class="o">+</span><span class="s1">&#39;.time&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vv</span><span class="p">)</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Copying position </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">))</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">vv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">out_file</span><span class="p">)</span>
         <span class="k">continue</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Concatenating position </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">posidict</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">out_file</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Concatenating position </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">posidict</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
         <span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="n">fiji_path</span><span class="p">,</span> <span class="s2">&quot;concat.py&quot;</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">vv</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">out_file</span><span class="p">,</span> <span class="n">tf</span><span class="p">])</span>
     <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">out_file</span><span class="p">),</span> <span class="s2">&quot;ERROR: output file was not created&quot;</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done!&quot;</span><span class="p">)</span>
@@ -13382,14 +13407,20 @@ Found 16 files across 5 positions
     <div class="prompt"></div>
 
 
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/data/CoulonLab/Maxime/jupyter/jupyter/lib/python3.7/site-packages/skimage/external/tifffile/tifffile.py:3724: UserWarning: invalid JSON &#39;b&#39;NULL &#39;&#39;
+  warnings.warn(&#34;invalid JSON &#39;%s&#39;&#34; % data)
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Done!
-Concatenating position 1/5
-Concatenating position 2/5
-Concatenating position 3/5
-Concatenating position 4/5
-Concatenating position 5/5
-Done!
+<pre>Processing position 5/30 with 5 files...
 </pre>
 </div>
 </div>

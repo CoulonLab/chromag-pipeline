@@ -65,7 +65,7 @@
 #   -  Example 2: in addition the magnet was re-added at 17:00 and re-removed at 17:30: `forceOn = [['2020-02-21 16:00:00', '2020-02-21 16:30:00'], ['2020-02-21 17:00:00', '2020-02-21 17:30:00']]`
 # - A `directory` variable, not used in this script.
 
-# In[13]:
+# In[1]:
 
 
 ## Imports // DO NOT EDIT
@@ -83,7 +83,7 @@ if not chromag.has_screen():
 print("Working with the version {} (commit {}), last updated on {}".format(__version__, str(chromag.get_git_revision_short_hash()), chromag.get_git_revision_date()))
 
 
-# In[20]:
+# In[3]:
 
 
 ## ========      ===========
@@ -91,9 +91,9 @@ print("Working with the version {} (commit {}), last updated on {}".format(__ver
 ## ========      ===========
 ## All the configuration is now in the CFG files. Here, only edit the selected folder if needed
 ## You can edit this if you want, overriden if running outside IPython // 
-# Current options (also listed below): Array7, PFS2, 20200221
+# Current options (also listed below): Array7, PFS2, 20200221, L20190410, L20190415
 
-dataset_to_run = "20200221"
+dataset_to_run = "L20190415"
 
 ## ==== DO NOT EDIT ==
 
@@ -180,7 +180,7 @@ with open(os.path.join(fn, "concatenation.txt"), 'a') as f: ## Export concatenat
 # 
 # This step uses `concat.py`, a Fiji macro. /!\ Make sure you do not delete them/edit it without care :)
 
-# In[28]:
+# In[ ]:
 
 
 ## Running the concatenation
@@ -196,15 +196,18 @@ onoff = {True: 'ON', False: 'OFF'}
 for (kk,vv) in posidict.items():
     vv  = ddf[kk].path.drop_duplicates().values
     with open(tf, "w") as f:
-        [f.write(i+"\n") for i in ["{:.0f}s ({})".format(i, onoff[ii]) for (i,ii) in zip(ddf[kk].time_since_beginning.values,ddf[kk].forceActivated.values)]]
+        #[f.write(i+"\n") for i in ["{:.0f}s ({})".format(i, onoff[ii]) for (i,ii) in zip(ddf[kk].time_since_beginning.values,ddf[kk].forceActivated.values)]]
+        [f.write(i+"\n") for i in ["{:.0f}s ({})".format(i, onoff[ii]) for (i,ii) in zip(ddf[kk].seconds_since_first_magnet_ON.values,ddf[kk].forceActivated.values)]]
+
     out_file = os.path.join(fn, 'concatenated_Pos{}.ome.tif'.format(kk))
     shutil.copyfile(tf, out_file+'.time')
     if len(vv)<=1:
         print("Copying position {}".format(kk))
         shutil.copyfile(os.path.join(prefix_path, vv[0]), out_file)
         continue
-    print("Concatenating position {}/{}".format(kk, max(posidict.keys())))
+    
     if not os.path.isfile(out_file):
+        print("Concatenating position {}/{}".format(kk, max(posidict.keys())))
         r = subprocess.call([fiji_path, "concat.py"]+[os.path.join(prefix_path, i) for i in vv]+[out_file, tf])
     assert os.path.isfile(out_file), "ERROR: output file was not created"
 print("Done!")

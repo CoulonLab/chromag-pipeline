@@ -1,3 +1,4 @@
+#-*- coding:utf-8 -*-
 ## Fiji Macro to concatenate stacks
 ## Takes the paths to concatenate as input arguments
 import sys, os
@@ -23,6 +24,7 @@ types = {ij.ImagePlus.COLOR_RGB : "RGB",
 lf = sys.argv[1:-2]
 of = sys.argv[-2] # output file
 tf = sys.argv[-1] # Address of the file of timestamps
+
 ## DBG
 #lf = ['/data/CoulonLab/CoulonLab Dropbox/data/Laura/20190415/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_5/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_5_MMStack_Pos0.ome.tif','/data/CoulonLab/CoulonLab Dropbox/data/Laura/20190415/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_6/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_6_MMStack_Pos0.ome.tif']
 print "Concatenating %i files" % len(lf)
@@ -174,6 +176,7 @@ if out.getNFrames() != len(ts):
     print "Either we are missing some timestamps (there are {}) or there are extra frames (there are {}) in the data, ABORTING".format(len(ts), out.getNFrames())
     sys.exit(1)
 
+## Add overlay
 font = Font("SanSerif", Font.PLAIN, 12)
 overlay = ij.gui.Overlay()
 
@@ -183,7 +186,17 @@ for (i,t) in enumerate(ts):
     overlay.add(roi)
 out.setOverlay(overlay)
 
-print "Overlay added. Saving."
+## Save pixel sizes
+c=imL[0].getCalibration()
+try:
+    un = c.getUnit().decode('ascii')
+except UnicodeDecodeError: # unit is micron
+    un = "micron"
+
+IJ.run(out, "Properties...", "unit={} pixel_width={} pixel_height={} voxel_depth={}".format(un, c.pixelWidth, c.pixelHeight, c.pixelDepth))
+
+print "Overlay & pixel sizes added. Saving."
+
 # === Save
 if os.path.isfile(of):
     print "Output file already exists, ABORTING: %s" % of
