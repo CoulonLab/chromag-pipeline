@@ -157,12 +157,12 @@ for i in range(out.getNFrames()):
     f=extractFrame(out, i+1)
     if f.getStatistics().max==0:
         print "Frame {} is dark, skipping".format(i)
-        toDel.append(i)
+        toDel.append(i+1)
 toKeep = [i for i in range(1, out.getNFrames()+1) if i not in toDel]
-
-out = SubHyperstackMaker().makeSubhyperstack(out,  "1-%d" % out.getNChannels(),
-                                             "1-%d" % out.getNSlices(),
-                                             ",".join([str(i) for i in toKeep]))
+out = SubHyperstackMaker().makeSubhyperstack(out,
+                                             range(1, out.getNChannels()+1),
+                                             range(1, out.getNSlices()+1),
+                                             toKeep)
 
 # === Apply overlay
 # Inspired from https://forum.image.sc/t/text-overlay-in-python-for-imagej/21989/4
