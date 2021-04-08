@@ -39,6 +39,10 @@
 # This scripts creates one movie per position (named with the position number), and recovers the timestamps of the individual frames. The timestamps are exported as a `.xls` file, and overlaid in the concatenated file. 
 # Finally, if the timestamp when the magnet was added/removed is present in the configuration (`.cfg`) file, then *(ON|OFF)* flag is present both in the `.xls` file and in the movie overlay.
 # 
+# **IMPORTANT NOTE:** the concatenated file contain metadata about the pixez size (in x, y and z). This metadata is retrieved from the MicroManager metadata. Make sure that this value is filled (and filled properly). If this is not the case, you can edit the `concat.py` file to change the `inject_pixel_size` variable to `True` and the `inject_pixel_size_value` to the actual pixel size.
+# 
+# 
+# 
 # ```
 # ├── concatenated_Pos1.ome.tif
 # ├── concatenated_Pos2.ome.tif
@@ -65,7 +69,7 @@
 #   -  Example 2: in addition the magnet was re-added at 17:00 and re-removed at 17:30: `forceOn = [['2020-02-21 16:00:00', '2020-02-21 16:30:00'], ['2020-02-21 17:00:00', '2020-02-21 17:30:00']]`
 # - A `directory` variable, not used in this script.
 
-# In[1]:
+# In[4]:
 
 
 ## Imports // DO NOT EDIT
@@ -83,7 +87,7 @@ if not chromag.has_screen():
 print("Working with the version {} (commit {}), last updated on {}".format(__version__, str(chromag.get_git_revision_short_hash()), chromag.get_git_revision_date()))
 
 
-# In[3]:
+# In[18]:
 
 
 ## ========      ===========
@@ -93,7 +97,7 @@ print("Working with the version {} (commit {}), last updated on {}".format(__ver
 ## You can edit this if you want, overriden if running outside IPython // 
 # Current options (also listed below): Array7, PFS2, 20200221, L20190410, L20190415
 
-dataset_to_run = "L20190415"
+dataset_to_run = "PFS2"
 
 ## ==== DO NOT EDIT ==
 

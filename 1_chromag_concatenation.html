@@ -13106,6 +13106,7 @@ div#notebook {
 │   └── displaySettings.txt</code></pre>
 <h3 id="output-data">output data<a class="anchor-link" href="#output-data">&#182;</a></h3><p>This scripts creates one movie per position (named with the position number), and recovers the timestamps of the individual frames. The timestamps are exported as a <code>.xls</code> file, and overlaid in the concatenated file. 
 Finally, if the timestamp when the magnet was added/removed is present in the configuration (<code>.cfg</code>) file, then <em>(ON|OFF)</em> flag is present both in the <code>.xls</code> file and in the movie overlay.</p>
+<p><strong>IMPORTANT NOTE:</strong> the concatenated file contain metadata about the pixez size (in x, y and z). This metadata is retrieved from the MicroManager metadata. Make sure that this value is filled (and filled properly). If this is not the case, you can edit the <code>concat.py</code> file to change the <code>inject_pixel_size</code> variable to <code>True</code> and the <code>inject_pixel_size_value</code> to the actual pixel size.</p>
 
 <pre><code>├── concatenated_Pos1.ome.tif
 ├── concatenated_Pos2.ome.tif
@@ -13135,7 +13136,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## Imports // DO NOT EDIT</span>
@@ -13168,7 +13169,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Working with the version v1.5.0 (commit 58a1528), last updated on Mon Mar 22 17:13:19 2021 +0100
+<pre>Working with the version v1.5.0 (commit 62c14ab), last updated on Fri Mar 26 15:42:08 2021 +0100
 </pre>
 </div>
 </div>
@@ -13179,7 +13180,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[18]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## ========      ===========</span>
@@ -13189,7 +13190,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 <span class="c1">## You can edit this if you want, overriden if running outside IPython // </span>
 <span class="c1"># Current options (also listed below): Array7, PFS2, 20200221, L20190410, L20190415</span>
 
-<span class="n">dataset_to_run</span> <span class="o">=</span> <span class="s2">&quot;L20190415&quot;</span>
+<span class="n">dataset_to_run</span> <span class="o">=</span> <span class="s2">&quot;PFS2&quot;</span>
 
 <span class="c1">## ==== DO NOT EDIT ==</span>
 
@@ -13291,47 +13292,48 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
  2: PFS2: 	 data/Maxime/concatenation/Veer/20191217 - PFS2/
  3: L20190410: 	 data/Maxime/concatenation/Laura/20190410/20210326/
  4: L20190415: 	 data/Maxime/concatenation/Laura/20190415/20210326/
-The following dataset has been selected: L20190415
+The following dataset has been selected: PFS2
 
 Available positions/sequence
-                                                    0  1  2  3  4  5  6  7  8  \
+                                                   0 1 2 3 4 5 6 7 8 9  ...  \
+Sequence                                                                ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
+
+                                                   17 18 19 20 21 22 23 24 25  \
 Sequence                                                                        
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *        *  *  *  *      
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *        *  *     *      
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *        *  *     *      
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *     *  *  *  *  *      
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *  *  *  *  *  *  *  *   
-
-                                                    9  ... 22 23 24 25 26 27  \
-Sequence                                               ...                     
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  ...     *        *  *   
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...     ...     *           *   
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...     ...     *           *   
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  ...     *        *  *   
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  ...  *  *  *  *  *  *   
-
-                                                   28 29 30  \
-Sequence                                                      
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...     *      
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...            
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...            
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *  *   
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
 
                                                                                             SequenceS  
 Sequence                                                                                               
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
-Laura/20190415/20190415_u2os_smallarray_tetRmCh...  20190415_u2os_smallarray_tetRmCherry_sirDNA_Zs...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
+Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
 
-[5 rows x 32 columns]
+[8 rows x 27 columns]
 
-Available analyses: 20210326, 20200420, 20200318
-Using folder: 20210326
-Found 90 files across 30 positions
-/data2/Dropbox/CoulonLab/data/Maxime/concatenation/Laura/20190415/20210326
+Available analyses: 20200409_, 20200609-trk, 20200115, instructions, 20200609, 20200611, 20200424, 20210305, 20200409
+Using folder: 20210305
+Found 56 files across 25 positions
+/data2/Dropbox/CoulonLab/data/Maxime/concatenation/Veer/20191217 - PFS2/20210305
 </pre>
 </div>
 </div>
@@ -13420,7 +13422,13 @@ Found 90 files across 30 positions
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Processing position 5/30 with 5 files...
+<pre>Done!
+Concatenating position 11/25
+Concatenating position 15/25
+Concatenating position 19/25
+Concatenating position 22/25
+Concatenating position 23/25
+Concatenating position 24/25
 </pre>
 </div>
 </div>

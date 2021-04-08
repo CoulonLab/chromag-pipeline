@@ -187,8 +187,6 @@ for (i,t) in enumerate(ts):
 out.setOverlay(overlay)
 
 ## Save pixel sizes
-
-
 inject_pixel_size=False # In some acquisitions, the xy pixel size was wrong, this patch allows to fix things
 inject_pixel_size_value = 0.0867
 c=imL[0].getCalibration()
