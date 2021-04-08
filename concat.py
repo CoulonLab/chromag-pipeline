@@ -187,7 +187,15 @@ for (i,t) in enumerate(ts):
 out.setOverlay(overlay)
 
 ## Save pixel sizes
+
+
+inject_pixel_size=False # In some acquisitions, the xy pixel size was wrong, this patch allows to fix things
+inject_pixel_size_value = 0.0867
 c=imL[0].getCalibration()
+if inject_pixel_size:
+    c.pixelWidth =  inject_pixel_size_value
+    c.pixelHeight = inject_pixel_size_value
+
 try:
     un = c.getUnit().decode('ascii')
 except UnicodeDecodeError: # unit is micron
