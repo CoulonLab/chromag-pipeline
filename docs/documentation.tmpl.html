@@ -1,0 +1,57 @@
+ <!doctype html>
+<html>
+  <head>
+    <title>chromag searchable documentation</title>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <h1>Browse the chromag documentation</h1>
+    <em> Last modified: </em> {date_modified}
+
+    <h2>Coordinate system</h2>
+    <img src="nomenclature.svg" width="500"></img>
+    <img src="force_conventions.png" width="300"></img>
+
+    <h2>Fields description</h2>
+    <input type="text" id="myInput" onkeyup="myFunction()" placeholder="Search for names..">
+
+    <table id="myTable">
+      {table_content}
+    </table>
+
+    <h2>Example files</h2>
+    <h3>Force calibration (.txt) file</h3>
+    <pre>
+      [20200224_Simulated_Force_field_z-0-10um_Msat-pillar-1.6e6_Msat-MNP-3e-20_Bext-100mT_corner-15um_Refine-2-2-2-2_Fxyz.tif]
+      pixXY = 0.130
+      rect = ((-81.1, 96.69), (512, 512), (927.31, -81.1)) # Rotation by 10°
+    </pre>
+
+    <img src="example_ff.png" width="700"></img>
+
+  </body>
+  <script>
+function myFunction() {
+  // Declare variables
+  var input, filter, table, tr, td, i, txtValue;
+  input = document.getElementById("myInput");
+  filter = input.value.toUpperCase();
+  table = document.getElementById("myTable");
+  tr = table.getElementsByTagName("tr");
+
+  // Loop through all table rows, and hide those who don't match the search query
+  for (i = 0; i < tr.length; i++) {
+    td = tr[i].getElementsByTagName("td")[2];
+    if (td) {
+      txtValue = td.textContent || td.innerText;
+      if (txtValue.toUpperCase().indexOf(filter) > -1) {
+        tr[i].style.display = "";
+      } else {
+        tr[i].style.display = "none";
+      }
+    }
+  }
+}
+</script>
+</html>

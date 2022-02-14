@@ -2,7 +2,7 @@
 <html>
 <head><meta charset="utf-8" />
 
-<title>1_chromag_concatenation</title>
+<title>ChromagPipeline</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -13107,6 +13107,7 @@ div#notebook {
 <h3 id="output-data">output data<a class="anchor-link" href="#output-data">&#182;</a></h3><p>This scripts creates one movie per position (named with the position number), and recovers the timestamps of the individual frames. The timestamps are exported as a <code>.xls</code> file, and overlaid in the concatenated file. 
 Finally, if the timestamp when the magnet was added/removed is present in the configuration (<code>.cfg</code>) file, then <em>(ON|OFF)</em> flag is present both in the <code>.xls</code> file and in the movie overlay.</p>
 <p><strong>IMPORTANT NOTE:</strong> the concatenated file contain metadata about the pixez size (in x, y and z). This metadata is retrieved from the MicroManager metadata. Make sure that this value is filled (and filled properly). If this is not the case, you can edit the <code>concat.py</code> file to change the <code>inject_pixel_size</code> variable to <code>True</code> and the <code>inject_pixel_size_value</code> to the actual pixel size.</p>
+<p><strong>IMPORTANT NOTE 2:</strong> The datasets acquired on 20190410 and 20190415 have an incorrect pixel size in x and y. The correct pixel size should be 0.0867 µm.</p>
 
 <pre><code>├── concatenated_Pos1.ome.tif
 ├── concatenated_Pos2.ome.tif
@@ -13128,31 +13129,30 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 <li>Example 2: in addition the magnet was re-added at 17:00 and re-removed at 17:30: <code>forceOn = [['2020-02-21 16:00:00', '2020-02-21 16:30:00'], ['2020-02-21 17:00:00', '2020-02-21 17:30:00']]</code></li>
 </ul>
 </li>
-<li>A <code>directory</code> variable, not used in this script.</li>
+<li>A <code>directory</code> variable, corresponding to the folder to be used in steps 7+.</li>
+<li><code>force_field</code>: the name of a force field (defined in details in <code>config.cfg</code></li>
+<li><code>mnp_calibration</code>: a dict corresponding to the number of MNPs in a given movie, at a given frame (1-indexed), where the locus is located at the x/y locations. </li>
 </ul>
+<h3 id="Documentation-of-the-output-file">Documentation of the output file<a class="anchor-link" href="#Documentation-of-the-output-file">&#182;</a></h3><p>The file <code>./docs/documentation.html</code> describes the column names of the .csv files.</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## Imports // DO NOT EDIT</span>
 <span class="n">running_in_jupyter</span> <span class="o">=</span> <span class="kc">True</span>
 
-<span class="c1">#%matplotlib inline</span>
-<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">configparser</span><span class="o">,</span> <span class="nn">datetime</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">ast</span>
-<span class="kn">import</span> <span class="nn">importlib</span> <span class="c1">#debug, allows to reload a module</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">datetime</span><span class="o">,</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">chromag_helper</span> <span class="k">as</span> <span class="nn">chromag</span>
+<span class="kn">import</span> <span class="nn">chromag_segment</span> <span class="k">as</span> <span class="nn">segment</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;v1.5.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;v2.4.0a&quot;</span>
 
-<span class="k">if</span> <span class="ow">not</span> <span class="n">chromag</span><span class="o">.</span><span class="n">has_screen</span><span class="p">():</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING, this script works only if a display is connected to the session,</span><span class="se">\</span>
-<span class="s2">    or if the session is open using `ssh -X` (display forwarding)&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Working with the version </span><span class="si">{}</span><span class="s2"> (commit </span><span class="si">{}</span><span class="s2">), last updated on </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">chromag</span><span class="o">.</span><span class="n">get_git_revision_short_hash</span><span class="p">()),</span> <span class="n">chromag</span><span class="o">.</span><span class="n">get_git_revision_date</span><span class="p">()))</span>
+<span class="n">running_in_jupyter</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">pre_init</span><span class="p">(</span><span class="n">__version__</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -13169,7 +13169,7 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Working with the version v1.5.0 (commit 62c14ab), last updated on Fri Mar 26 15:42:08 2021 +0100
+<pre>Working with the version v2.4.0a (commit 306a58d), last updated on Thu Apr 8 08:44:08 2021 +0200
 </pre>
 </div>
 </div>
@@ -13180,96 +13180,26 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[18]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## ========      ===========</span>
 <span class="c1">## Selection of the config file</span>
 <span class="c1">## ========      ===========</span>
-<span class="c1">## All the configuration is now in the CFG files. Here, only edit the selected folder if needed</span>
+<span class="c1">## All the configuration is in the CFG files. Here, only edit the selected folder if needed</span>
 <span class="c1">## You can edit this if you want, overriden if running outside IPython // </span>
-<span class="c1"># Current options (also listed below): Array7, PFS2, 20200221, L20190410, L20190415</span>
+<span class="c1"># Current options (also listed below): Array7, PFS2, 20200221, L20190410, L20190415, 20210623, 20210719, 20210721, 20210723</span>
+<span class="c1">## Previous analyses are saved in the file `concatenate_archive.py`</span>
 
-<span class="n">dataset_to_run</span> <span class="o">=</span> <span class="s2">&quot;PFS2&quot;</span>
+<span class="n">dataset_to_run</span> <span class="o">=</span> <span class="s2">&quot;20200221&quot;</span> <span class="c1"># refers to the section in the .cfg file</span>
 
-<span class="c1">## ==== DO NOT EDIT ==</span>
-
-<span class="c1">## Load config files</span>
-<span class="n">config_datasets_path</span> <span class="o">=</span> <span class="s2">&quot;config/datasets.cfg&quot;</span>
-<span class="n">config_main_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.cfg&quot;</span>
-<span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">config_datasets_path</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">config_main_path</span><span class="p">)</span>
-
-<span class="n">cfg_data</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">(</span><span class="n">inline_comment_prefixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,))</span>
-<span class="n">cfg_data</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_datasets_path</span><span class="p">)</span>
-<span class="n">cfg_main</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">(</span><span class="n">inline_comment_prefixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,))</span>
-<span class="n">cfg_main</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_main_path</span><span class="p">)</span>
-
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The following datasets are available:&quot;</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cfg_data</span><span class="o">.</span><span class="n">sections</span><span class="p">()):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">: </span><span class="se">\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">cfg_data</span><span class="p">[</span><span class="n">s</span><span class="p">][</span><span class="s2">&quot;directory&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;drift-correction&#39;</span><span class="p">,</span> <span class="s1">&#39;concatenation&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
-    
-<span class="k">if</span> <span class="n">running_in_jupyter</span><span class="p">:</span> <span class="c1">## Select dataset</span>
-    <span class="k">pass</span>
-<span class="k">elif</span> <span class="ow">not</span> <span class="n">running_in_jupyter</span> <span class="ow">and</span> <span class="s2">&quot;--dataset-to-process&quot;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;(reading from command-line)&quot;</span><span class="p">)</span>
-    <span class="n">dataset_to_run</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;--dataset-to-process&quot;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="n">dataset_to_run</span> <span class="o">=</span> <span class="n">cfg_main</span><span class="o">.</span><span class="n">get_string</span><span class="p">(</span><span class="s2">&quot;Main&quot;</span><span class="p">,</span> <span class="s2">&quot;dataset_to_process&quot;</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">dataset_to_run</span> <span class="ow">in</span> <span class="n">cfg_data</span><span class="o">.</span><span class="n">sections</span><span class="p">(),</span> <span class="s2">&quot;Unrecognized dataset selected: </span><span class="si">{}</span><span class="s2">, should be one of: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataset_to_run</span><span class="p">,</span> <span class="n">cfg_data</span><span class="o">.</span><span class="n">sections</span><span class="p">())</span> 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The following dataset has been selected: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataset_to_run</span><span class="p">))</span>
-
-<span class="n">system</span> <span class="o">=</span> <span class="n">cfg_main</span><span class="p">[</span><span class="s2">&quot;Main&quot;</span><span class="p">][</span><span class="s2">&quot;system&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">use_analysis</span> <span class="o">=</span> <span class="n">cfg_data</span><span class="p">[</span><span class="n">dataset_to_run</span><span class="p">][</span><span class="s2">&quot;use_analysis&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># trim delimiter</span>
-
-<span class="n">lfn</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">cfg_data</span><span class="p">[</span><span class="n">dataset_to_run</span><span class="p">][</span><span class="s2">&quot;lfn&quot;</span><span class="p">])</span>
-<span class="n">forceOn</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">cfg_data</span><span class="p">[</span><span class="n">dataset_to_run</span><span class="p">][</span><span class="s2">&quot;forceOn&quot;</span><span class="p">])</span>
-
-<span class="c1">## Previous analysis are saved in the file `concatenate_archive.py`</span>
-<span class="c1">## === Do not edit</span>
-<span class="n">prefix_dict</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">cfg_main</span><span class="p">[</span><span class="s1">&#39;Main&#39;</span><span class="p">][</span><span class="s1">&#39;prefix_dict&#39;</span><span class="p">])</span>
-<span class="n">fiji_dict</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">cfg_main</span><span class="p">[</span><span class="s1">&#39;Main&#39;</span><span class="p">][</span><span class="s1">&#39;fiji_dict&#39;</span><span class="p">])</span>
-<span class="n">lfn</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">i</span><span class="o">+</span><span class="s1">&#39;/&#39;</span>  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">lfn</span><span class="p">]</span>
-<span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix_dict</span><span class="p">[</span><span class="n">system</span><span class="p">]</span>
-<span class="n">fiji_path</span> <span class="o">=</span> <span class="n">fiji_dict</span><span class="p">[</span><span class="n">system</span><span class="p">]</span>
-<span class="n">prefix_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;data/&quot;</span><span class="p">)</span> <span class="c1"># Dropbox path</span>
-<span class="n">project_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;projects/chromag&quot;</span><span class="p">)</span> <span class="c1"># chromag&#39;s path path</span>
-<span class="n">CCresult_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;data/Maxime/concatenation/&quot;</span><span class="p">)</span> <span class="c1"># Path to store concatenated files</span>
-<span class="n">DCresult_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;data/Maxime/drift-correction/&quot;</span><span class="p">)</span> <span class="c1"># Path to store the drift-corrected files</span>
-
-<span class="c1"># check that files are present</span>
-<span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">chromag</span><span class="o">.</span><span class="n">convert_path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">system</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">lfn</span><span class="p">]),</span> <span class="s2">&quot;ERROR: some files were not found.&quot;</span>
-<span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fiji_path</span><span class="p">),</span> <span class="s2">&quot;ERROR: fiji not found&quot;</span>
-
-<span class="c1"># Handle date manipulations</span>
-<span class="n">forceLast</span> <span class="o">=</span> <span class="s2">&quot;2029-12-03 17:10:13&quot;</span>
-
-<span class="c1"># Sanity checks</span>
-<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forceOn</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">forceOn</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># Make sure we have a start-stop format</span>
-    <span class="n">forceOn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">forceLast</span><span class="p">)</span>
-<span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">forceOn</span><span class="p">]),</span> <span class="s2">&quot;The timestamps should have the shape (t_start, t_stop)&quot;</span>
-
-<span class="c1"># Parse dates</span>
-<span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span>
-<span class="n">forceOnP</span> <span class="o">=</span> <span class="p">[[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">fmt</span><span class="p">),</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">fmt</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">forceOn</span><span class="p">]</span>
-<span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&gt;</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">forceOnP</span><span class="p">]),</span> <span class="s2">&quot;End time should be after start time&quot;</span>
-<span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">forceOnP</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">&lt;</span><span class="n">forceOnP</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">forceOnP</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)]),</span> <span class="s2">&quot;Not all intersections are disjunct&quot;</span>
-
-<span class="c1">## First, we will list the input files, output folders, etc.</span>
-<span class="n">posidict</span><span class="p">,</span> <span class="n">fn</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">list_files_positions</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">CCresult_path</span><span class="p">,</span> <span class="n">use_analysis</span><span class="p">,</span> <span class="n">lfn</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-
-<span class="c1">## Log (versions, etc)</span>
-<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;pipeline_version.txt&quot;</span><span class="p">),</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span> <span class="c1">## Export pipeline version</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: Working with the version </span><span class="si">{}</span><span class="s2"> (commit </span><span class="si">{}</span><span class="s2">), last updated on </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">__version__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">chromag</span><span class="o">.</span><span class="n">get_git_revision_short_hash</span><span class="p">()),</span> <span class="n">chromag</span><span class="o">.</span><span class="n">get_git_revision_date</span><span class="p">()))</span>
-
-<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;concatenation.txt&quot;</span><span class="p">),</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span> <span class="c1">## Export concatenation instruction</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;files:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">lfn</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">lfn</span><span class="p">))</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Timestamps:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">forceOn</span><span class="p">))</span>
+<span class="c1">## ==== Do not edit below this point ====</span>
+<span class="n">config_paths</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;datasets&#39;</span> <span class="p">:</span> <span class="s2">&quot;config/datasets.cfg&quot;</span><span class="p">,</span> <span class="s1">&#39;main&#39;</span> <span class="p">:</span> <span class="s2">&quot;config/config.cfg&quot;</span><span class="p">}</span> <span class="c1">## Load config files</span>
+<span class="n">config</span><span class="p">,</span> <span class="n">dataset_to_run</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">init_config</span><span class="p">(</span><span class="n">config_paths</span><span class="p">,</span> <span class="n">dataset_to_run</span><span class="p">,</span> 
+                                             <span class="n">is_jupyter</span><span class="o">=</span><span class="n">running_in_jupyter</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1">## First, read &amp; process the config files</span>
+<span class="n">posidict</span><span class="p">,</span> <span class="n">fn</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">list_files_positions</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;prefix_path&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;CCresult_path&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;use_analysis&#39;</span><span class="p">],</span> 
+                                            <span class="n">config</span><span class="p">[</span><span class="s1">&#39;lfn&#39;</span><span class="p">],</span> <span class="n">__version__</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;forceOn&#39;</span><span class="p">],</span> 
+                                            <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1">## Then, we will list the input files, output folders, etc.</span>
 </pre></div>
 
     </div>
@@ -13287,53 +13217,36 @@ Finally, if the timestamp when the magnet was added/removed is present in the co
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>The following datasets are available:
- 0: 20200221: 	 data/Maxime/concatenation/Antoine/20200221/
- 1: Array7: 	 data/Maxime/concatenation/Veer/20191223 - array7/
- 2: PFS2: 	 data/Maxime/concatenation/Veer/20191217 - PFS2/
- 3: L20190410: 	 data/Maxime/concatenation/Laura/20190410/20210326/
- 4: L20190415: 	 data/Maxime/concatenation/Laura/20190415/20210326/
-The following dataset has been selected: PFS2
+ 0: 20210723: 	 data/Maxime/concatenation/Antoine/20210723/
+ 1: 20210721: 	 data/Maxime/concatenation/Antoine/20210721/
+ 2: 20210719: 	 data/Maxime/concatenation/Antoine/20210719/
+ 3: 20210623: 	 data/Maxime/concatenation/Antoine/20210623/
+ 4: 20200221: 	 data/Maxime/concatenation/Antoine/20200221/
+ 5: Array7: 	 data/Maxime/concatenation/Veer/20191223 - array7/
+ 6: PFS2: 	 data/Maxime/concatenation/Veer/20191217 - PFS2/
+ 7: L20190410: 	 data/Maxime/concatenation/Laura/20190410/20210326/
+ 8: L20190415: 	 data/Maxime/concatenation/Laura/20190415/20210326/
+The following dataset has been selected: 20200221
 
 Available positions/sequence
-                                                   0 1 2 3 4 5 6 7 8 9  ...  \
-Sequence                                                                ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...                      ...   
-
-                                                   17 18 19 20 21 22 23 24 25  \
-Sequence                                                                        
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...        *        *  *  *  *   
+                                                   0  1  2  3  4  5  \
+Sequence                                                              
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *  *  *  *  *   
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *  *  *  *  *   
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *  *  *  *  *   
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...    *               
 
                                                                                             SequenceS  
 Sequence                                                                                               
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
-Veer/20191217 - PFS2/20191217_U2OS_stTetR-mCher...  20191217_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_attr...  
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
+Antoine/20200221/20200221_U2OS_stTetR-mCherry_G...  20200221_U2OS_stTetR-mCherry_GFP-ferritin_befo...  
 
-[8 rows x 27 columns]
-
-Available analyses: 20200409_, 20200609-trk, 20200115, instructions, 20200609, 20200611, 20200424, 20210305, 20200409
-Using folder: 20210305
-Found 56 files across 25 positions
-/data2/Dropbox/CoulonLab/data/Maxime/concatenation/Veer/20191217 - PFS2/20210305
+Available analyses: 20210318, 20220214, 20210927, 20200318
+Using folder: 20220214
+Found 16 files across 6 positions
+/data2/Dropbox/CoulonLab/data/Maxime/concatenation/Antoine/20200221/20220214
 </pre>
 </div>
 </div>
@@ -13359,41 +13272,45 @@ Found 56 files across 25 positions
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## Running the concatenation</span>
 <span class="c1">## Be careful that imageJ-scifio might not read the overlay properly :s</span>
 <span class="c1">## note that useful debug information will be displayed in the console</span>
+<span class="c1">## A special function chromag.manual_concatenation() can be customed to concatenate hard-to-concatenate files.</span>
 
 <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="s2">&quot;ERROR: output folder </span><span class="si">{}</span><span class="s2"> does not exists&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">chromag</span><span class="o">.</span><span class="n">has_screen</span><span class="p">(),</span> <span class="s2">&quot;No display found, are you connected using `ssh -X`?&quot;</span>
-<span class="n">ddf</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">save_timestamps</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">posidict</span><span class="p">,</span> <span class="n">system</span><span class="p">,</span> <span class="n">fieldOn</span><span class="o">=</span><span class="n">forceOnP</span><span class="p">)</span> <span class="c1">## Extract .xls spreadsheets with timestamps</span>
+<span class="n">ddf</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">save_timestamps</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;prefix_path&#39;</span><span class="p">],</span> <span class="n">fn</span><span class="p">,</span> <span class="n">posidict</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;system&#39;</span><span class="p">],</span> 
+                              <span class="n">fieldOn</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;forceOnP&#39;</span><span class="p">],</span> <span class="n">force_overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1">## Extract .xls spreadsheets with timestamps</span>
+<span class="n">chromag</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">posidict</span><span class="p">,</span> <span class="n">ddf</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># a wrapper to a Fiji script</span>
+</pre></div>
 
-<span class="n">tf</span> <span class="o">=</span> <span class="s2">&quot;timestamps.tmp&quot;</span>
-<span class="n">onoff</span> <span class="o">=</span> <span class="p">{</span><span class="kc">True</span><span class="p">:</span> <span class="s1">&#39;ON&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">:</span> <span class="s1">&#39;OFF&#39;</span><span class="p">}</span>
-<span class="k">for</span> <span class="p">(</span><span class="n">kk</span><span class="p">,</span><span class="n">vv</span><span class="p">)</span> <span class="ow">in</span> <span class="n">posidict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="n">vv</span>  <span class="o">=</span> <span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tf</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="c1">#[f.write(i+&quot;\n&quot;) for i in [&quot;{:.0f}s ({})&quot;.format(i, onoff[ii]) for (i,ii) in zip(ddf[kk].time_since_beginning.values,ddf[kk].forceActivated.values)]]</span>
-        <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{:.0f}</span><span class="s2">s (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">onoff</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ii</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">seconds_since_first_magnet_ON</span><span class="o">.</span><span class="n">values</span><span class="p">,</span><span class="n">ddf</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">forceActivated</span><span class="o">.</span><span class="n">values</span><span class="p">)]]</span>
+    </div>
+</div>
+</div>
 
-    <span class="n">out_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s1">&#39;concatenated_Pos</span><span class="si">{}</span><span class="s1">.ome.tif&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">))</span>
-    <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">tf</span><span class="p">,</span> <span class="n">out_file</span><span class="o">+</span><span class="s1">&#39;.time&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vv</span><span class="p">)</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Copying position </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">))</span>
-        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">vv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">out_file</span><span class="p">)</span>
-        <span class="k">continue</span>
-    
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">out_file</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Concatenating position </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">posidict</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="n">fiji_path</span><span class="p">,</span> <span class="s2">&quot;concat.py&quot;</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">vv</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">out_file</span><span class="p">,</span> <span class="n">tf</span><span class="p">])</span>
-    <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">out_file</span><span class="p">),</span> <span class="s2">&quot;ERROR: output file was not created&quot;</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done!&quot;</span><span class="p">)</span>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[2]-Register-all-pillars-and-select-all-the-cells">[2] Register all pillars and select all the cells<a class="anchor-link" href="#[2]-Register-all-pillars-and-select-all-the-cells">&#182;</a></h2><p>Here you whould use the <code>cell_selection.ijm</code> Fiji macro. It will create a .txt file for each concatenated file. Concatenated movies without a .txt file will not be processed.</p>
+<p><strong>/!\ IMPORTANT:</strong> This is a manual step that should be performed by running the Fiji macro on each individual concatenated file.</p>
 
-<span class="c1">## /!\ Emergency concat</span>
-<span class="n">emergency</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="k">if</span> <span class="n">emergency</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">np</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="mi">19</span><span class="p">]:</span> <span class="c1"># Positions to concatenate</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/home/umr3664/CoulonLab/CoulonLab Dropbox/data/Maxime/concatenation/Veer/20191114 - fixed/20191126-before/concatenated_Pos</span><span class="si">{}</span><span class="s2">.ome.tif&quot;</span><span class="p">,</span>
-             <span class="s2">&quot;/home/umr3664/CoulonLab/CoulonLab Dropbox/data/Maxime/concatenation/Veer/20191114 - fixed/20191114_U2OS_stTetR-mCherry_GFP-ferritin_attraction_4bis/20191114_U2OS_stTetR-mCherry_GFP-ferritin_attraction_4_MMStack_Pos</span><span class="si">{}</span><span class="s2">.ome.tif&quot;</span><span class="p">,</span>
-             <span class="s2">&quot;/home/umr3664/CoulonLab/CoulonLab Dropbox/data/Maxime/concatenation/Veer/20191114 - fixed/20191126-after/concatenated_Pos</span><span class="si">{}</span><span class="s2">.ome.tif&quot;</span><span class="p">]</span>
-        <span class="n">out_file</span> <span class="o">=</span> <span class="s2">&quot;/home/umr3664/CoulonLab/CoulonLab Dropbox/data/Maxime/concatenation/Veer/20191114 - fixed/20191126-final/concatenated_Pos</span><span class="si">{}</span><span class="s2">.ome.tif&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="p">)</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="n">fiji_path</span><span class="p">,</span> <span class="s2">&quot;concat.py&quot;</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix_path</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">p</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">out_file</span><span class="p">,</span> <span class="n">tf</span><span class="p">])</span>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[3]-Compute-the-bandpassed-versions-of-the-movies-and-crop-individual-cells">[3] Compute the bandpassed versions of the movies and crop individual cells<a class="anchor-link" href="#[3]-Compute-the-bandpassed-versions-of-the-movies-and-crop-individual-cells">&#182;</a></h2><p>Note that this requires a lot of memory, and thus we tell Java/Fiji to allocate 40 GB of memory. This parameter
+can be tuned, using the <code>-Xmx40G</code> flag (to allocate 20GB instead, replace the flag with <code>-Xmx20G</code>).</p>
+<p>The <code>bandpass</code> and <code>crop</code> functions are wrappers that makes an external call to Fiji, things might go wrong when it is called. Additional debug info is displayed in the console.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">chromag</span><span class="o">.</span><span class="n">bandpass</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">posidict</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span> <span class="c1">## Compute the bandpassed versions</span>
 </pre></div>
 
     </div>
@@ -13409,9 +13326,74 @@ Found 56 files across 25 positions
     <div class="prompt"></div>
 
 
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>/data/CoulonLab/Maxime/jupyter/jupyter/lib/python3.7/site-packages/skimage/external/tifffile/tifffile.py:3724: UserWarning: invalid JSON &#39;b&#39;NULL &#39;&#39;
-  warnings.warn(&#34;invalid JSON &#39;%s&#39;&#34; % data)
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Computing bandpassed for concatenated_Pos1.ome.tif, with parameters sd1 = 0.8, sd2 = 10
+Computing bandpassed for concatenated_Pos2.ome.tif, with parameters sd1 = 0.8, sd2 = 10
+Computing bandpassed for concatenated_Pos3.ome.tif, with parameters sd1 = 0.8, sd2 = 10
+File /data2/Dropbox/CoulonLab/data/Maxime/concatenation/Antoine/20200221/20220214/concatenated_Pos4.ome.tif will not be included in further analysis
+File /data2/Dropbox/CoulonLab/data/Maxime/concatenation/Antoine/20200221/20220214/concatenated_Pos5.ome.tif will not be included in further analysis
+Done!
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># crop could be made much faster by loading only once each file.</span>
+<span class="n">lf</span><span class="p">,</span> <span class="n">lfDC</span><span class="p">,</span> <span class="n">lfDC_all</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">crop</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">correction_type</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">followLocus</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1">## Extract individual cells</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[4]-Extract-initial-force">[4] Extract initial force<a class="anchor-link" href="#[4]-Extract-initial-force">&#182;</a></h2><p>The initial force (<code>Fstart</code>) is useful to determine whether a cell should be analyzed in full. To be able to compute this initial force, we retrieve the location of the pillar and the manual pointing of the locus at a time around zero (the first time point after the magnet was added).</p>
+<p>This step uses the <code>ff_p</code> field in <code>config.cfg</code>, make sure that you configured it properly.</p>
+<p>We first locate the pillar, to be able to get a distance to the pillar, and an estimate of the force.</p>
+<ul>
+<li>Load and plot the pillar on the first frame of the data</li>
+<li>Load the force profile</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[13]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">imgF</span><span class="p">,</span> <span class="n">r_force</span><span class="p">,</span> <span class="n">px_size</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;simulated_pillar_pointing_down&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">forcefield</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ff_p&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;project_path&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;prefix_path&#39;</span><span class="p">],</span> 
+                                            <span class="n">force_name</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;force_field&#39;</span><span class="p">])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Loading force field: array1ferritinH
+Reading 20210222_Simulated_Force_array1b-ferritinH_field_z-3um_Msat-pillar-3.67e5_Msat-MNP-8.5e-20_Bext-100mT_corner-10um_angle3.4deg_Refine-2-2-2_rescaled-px-130nm_bot_Fxyz.tif
 </pre>
 </div>
 </div>
@@ -13421,18 +13403,739 @@ Found 56 files across 25 positions
     <div class="prompt"></div>
 
 
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Done!
-Concatenating position 11/25
-Concatenating position 15/25
-Concatenating position 19/25
-Concatenating position 22/25
-Concatenating position 23/25
-Concatenating position 24/25
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/data/CoulonLab/Maxime/jupyter/jupyter/lib/python3.7/site-packages/skimage/external/tifffile/tifffile.py:2135: UserWarning: tags are not ordered by code
+  warnings.warn(&#34;tags are not ordered by code&#34;)
 </pre>
 </div>
 </div>
 
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+
+
+<div class="output_png output_subarea ">
+<img src="data:image/png;base64,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
+"
+>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[15]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## OPTIONAL: Provide a table with an estimate of the initial force.</span>
+<span class="n">chromag</span><span class="o">.</span><span class="n">list_Fstart</span><span class="p">(</span><span class="n">lf</span><span class="p">,</span> <span class="n">lfDC</span><span class="p">,</span> <span class="n">imgF</span><span class="p">,</span> <span class="n">px_size</span><span class="p">,</span> <span class="n">r_force</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Fit did not converge, file: /data2/Dropbox/CoulonLab/data/Maxime/drift-correction/Antoine/20210723/20210727/concatenated_Pos3DC2.ome.tif
+ initial point: f=8, x=123.0, y=183.0, z=15
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+Field px size: 0.130, Experiment px size: 0.1287, zooming the force field by a factor: 1.0101010101010102
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+    <div class="prompt output_prompt">Out[15]:</div>
+
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>movie</th>
+      <th>cell</th>
+      <th>Fstart_per_MNP_fN</th>
+      <th>Fstart_per_locus_pN</th>
+      <th>MNPs</th>
+      <th>Fx_start_per_MNP_fN</th>
+      <th>Fy_start_per_MNP_fN</th>
+      <th>Fz_start_per_MNP_fN</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>concatenated_Pos0.ome.tif</td>
+      <td>0</td>
+      <td>0.655895</td>
+      <td>0.188594</td>
+      <td>287.537590</td>
+      <td>0.461130</td>
+      <td>0.444983</td>
+      <td>0.139812</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>concatenated_Pos0.ome.tif</td>
+      <td>1</td>
+      <td>0.340654</td>
+      <td>0.406964</td>
+      <td>1194.653236</td>
+      <td>0.278180</td>
+      <td>0.177678</td>
+      <td>0.084213</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>concatenated_Pos0.ome.tif</td>
+      <td>2</td>
+      <td>0.550553</td>
+      <td>0.312822</td>
+      <td>568.195833</td>
+      <td>-0.366853</td>
+      <td>0.381876</td>
+      <td>0.150659</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>concatenated_Pos0.ome.tif</td>
+      <td>3</td>
+      <td>0.547366</td>
+      <td>1.732477</td>
+      <td>3165.114270</td>
+      <td>-0.376275</td>
+      <td>0.368878</td>
+      <td>0.148174</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>concatenated_Pos0.ome.tif</td>
+      <td>4</td>
+      <td>0.228451</td>
+      <td>0.322101</td>
+      <td>1409.935142</td>
+      <td>-0.167962</td>
+      <td>0.147227</td>
+      <td>0.047985</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>concatenated_Pos3.ome.tif</td>
+      <td>0</td>
+      <td>0.292946</td>
+      <td>0.588775</td>
+      <td>2009.838514</td>
+      <td>0.049586</td>
+      <td>0.284989</td>
+      <td>0.046263</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>concatenated_Pos3.ome.tif</td>
+      <td>1</td>
+      <td>0.119551</td>
+      <td>0.311735</td>
+      <td>2607.557501</td>
+      <td>-0.091798</td>
+      <td>0.074277</td>
+      <td>0.018665</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>concatenated_Pos3.ome.tif</td>
+      <td>2</td>
+      <td>0.097763</td>
+      <td>0.175307</td>
+      <td>1793.186244</td>
+      <td>0.083105</td>
+      <td>0.048409</td>
+      <td>0.017544</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>concatenated_Pos3.ome.tif</td>
+      <td>3</td>
+      <td>0.150415</td>
+      <td>0.449708</td>
+      <td>2989.783758</td>
+      <td>-0.085918</td>
+      <td>0.121830</td>
+      <td>0.020001</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>concatenated_Pos3.ome.tif</td>
+      <td>4</td>
+      <td>0.013576</td>
+      <td>0.049374</td>
+      <td>3636.771445</td>
+      <td>-0.000182</td>
+      <td>0.013559</td>
+      <td>0.000666</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>concatenated_Pos8.ome.tif</td>
+      <td>0</td>
+      <td>0.603211</td>
+      <td>1.168458</td>
+      <td>1937.062794</td>
+      <td>0.438806</td>
+      <td>-0.382585</td>
+      <td>0.157929</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>concatenated_Pos8.ome.tif</td>
+      <td>1</td>
+      <td>0.180300</td>
+      <td>0.233936</td>
+      <td>1297.483273</td>
+      <td>0.087981</td>
+      <td>-0.155372</td>
+      <td>0.025040</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>concatenated_Pos8.ome.tif</td>
+      <td>2</td>
+      <td>0.075595</td>
+      <td>0.125418</td>
+      <td>1659.077932</td>
+      <td>0.053351</td>
+      <td>-0.052924</td>
+      <td>0.008203</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>concatenated_Pos8.ome.tif</td>
+      <td>3</td>
+      <td>0.059652</td>
+      <td>0.102981</td>
+      <td>1726.360482</td>
+      <td>0.048954</td>
+      <td>-0.033238</td>
+      <td>0.007554</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>concatenated_Pos8.ome.tif</td>
+      <td>4</td>
+      <td>0.004791</td>
+      <td>0.008140</td>
+      <td>1698.976619</td>
+      <td>-0.003989</td>
+      <td>-0.002649</td>
+      <td>0.000169</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>concatenated_Pos8.ome.tif</td>
+      <td>5</td>
+      <td>0.089375</td>
+      <td>0.023138</td>
+      <td>258.888775</td>
+      <td>-0.077308</td>
+      <td>-0.043326</td>
+      <td>0.011592</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>concatenated_Pos8.ome.tif</td>
+      <td>6</td>
+      <td>0.096387</td>
+      <td>0.025335</td>
+      <td>262.845263</td>
+      <td>-0.040249</td>
+      <td>-0.086988</td>
+      <td>0.010180</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>concatenated_Pos1.ome.tif</td>
+      <td>0</td>
+      <td>0.906631</td>
+      <td>0.662462</td>
+      <td>730.685329</td>
+      <td>0.365971</td>
+      <td>0.806069</td>
+      <td>0.195699</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>concatenated_Pos1.ome.tif</td>
+      <td>1</td>
+      <td>0.809081</td>
+      <td>2.763202</td>
+      <td>3415.235056</td>
+      <td>-0.550596</td>
+      <td>0.549881</td>
+      <td>0.221557</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>concatenated_Pos1.ome.tif</td>
+      <td>2</td>
+      <td>0.437107</td>
+      <td>0.780196</td>
+      <td>1784.905495</td>
+      <td>-0.303570</td>
+      <td>0.293199</td>
+      <td>0.113766</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>concatenated_Pos4.ome.tif</td>
+      <td>0</td>
+      <td>0.275102</td>
+      <td>0.191902</td>
+      <td>697.568189</td>
+      <td>0.127881</td>
+      <td>0.239690</td>
+      <td>0.043315</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>concatenated_Pos4.ome.tif</td>
+      <td>1</td>
+      <td>0.232806</td>
+      <td>0.649213</td>
+      <td>2788.644715</td>
+      <td>0.193464</td>
+      <td>0.116532</td>
+      <td>0.056484</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>concatenated_Pos4.ome.tif</td>
+      <td>2</td>
+      <td>0.084635</td>
+      <td>0.232486</td>
+      <td>2746.936445</td>
+      <td>0.001401</td>
+      <td>0.084208</td>
+      <td>0.008374</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>concatenated_Pos7.ome.tif</td>
+      <td>0</td>
+      <td>0.187386</td>
+      <td>0.484682</td>
+      <td>2586.539391</td>
+      <td>0.061105</td>
+      <td>0.175319</td>
+      <td>0.025360</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>concatenated_Pos7.ome.tif</td>
+      <td>1</td>
+      <td>0.016805</td>
+      <td>0.053942</td>
+      <td>3209.914645</td>
+      <td>-0.000611</td>
+      <td>0.016770</td>
+      <td>0.000892</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[5]-Track-loci">[5] Track loci<a class="anchor-link" href="#[5]-Track-loci">&#182;</a></h2><p>You should run <code>trackUsingMouse</code> on all the extracted cells.</p>
+<p><strong>/!\ IMPORTANT:</strong> This is a manual step that should be performed by running the <code>trackUsingMouse</code> notebook on each individual concatenated file.</p>
+<p>Here we perform a 2D+1D fitting (the locus is first localized at subpixel resolution in (x,y), and then the z coordinate is determined by finding the plane of highest intensity at the locus.</p>
+<p>Notes:</p>
+<ul>
+<li><code>init_crop</code>: runs a Fiji macro to extract the locus channel, debug information is provided in the console.</li>
+<li><code>track_subpixel</code>: you can tune <code>border</code> (ideally: 3) if you get a lot of 'Aborting! without computation, the selection (partially) lies outside the image' messages</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[14]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">lfTR_all</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;mtrk_cvfn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">init_track</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">lfDC_all</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;fiji_path&#39;</span><span class="p">],</span> <span class="n">force_overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># extract locus channel</span>
+
+<span class="c1">## ==== TODO MW (v2.0) ====</span>
+<span class="c1">## Integrate an interactive version of trackUsingMouse</span>
+<span class="c1">## And document which files should be created.</span>
+<span class="c1">## The output of this step is to create a .mtrk (manual tracking) file, that represents a gross tracking,</span>
+<span class="c1">##+that is then refined at subpixel resolution.</span>
+
+<span class="c1"># Actually the extraction of the _MAX file could be removed, since trackUsingMouse was updated.</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>1/7: concatenated_Pos3DC0_MAX.ome.tif: OK
+2/7: concatenated_Pos3DC1_MAX.ome.tif: OK
+3/7: concatenated_Pos3DC2_MAX.ome.tif: OK
+4/7: concatenated_Pos2DC0_MAX.ome.tif: OK
+5/7: concatenated_Pos2DC1_MAX.ome.tif: OK
+6/7: concatenated_Pos1DC0_MAX.ome.tif: OK
+7/7: concatenated_Pos1DC1_MAX.ome.tif: OK
+The script &#39;max_intensity_projection.tmp.ijm&#39; was created
+Done!
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[15]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## This function does not have to be re-run every time</span>
+<span class="c1"># border should be set to 3 for 20191223</span>
+<span class="c1"># border should be set to 7 for 20191217</span>
+<span class="n">chromag</span><span class="o">.</span><span class="n">track_subpixel</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">lfTR_all</span><span class="p">,</span> <span class="n">lfDC_all</span><span class="p">,</span> <span class="n">mtrk_cvfn</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;mtrk_cvfn&#39;</span><span class="p">],</span> <span class="n">select</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">skip</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dbg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="c1">#chromag.track_debug(&quot;22DC3&quot;, lfTR_all, lfDC_all, ch=1)  # DBG: useful to see how tracking/convergence performs</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>1/7: Fitting: concatenated_Pos3DC0.ome.tif
+2/7: Fitting: concatenated_Pos3DC1.ome.tif
+3/7: Fitting: concatenated_Pos3DC2.ome.tif
+4/7: Fitting: concatenated_Pos2DC0.ome.tif
+5/7: Fitting: concatenated_Pos2DC1.ome.tif
+6/7: Fitting: concatenated_Pos1DC0.ome.tif
+7/7: Fitting: concatenated_Pos1DC1.ome.tif
+Summary of fitting:
+1: [No tracking data] concatenated_Pos3DC0.ome.tif
+2: [No tracking data] concatenated_Pos3DC1.ome.tif
+3: [No tracking data] concatenated_Pos3DC2.ome.tif
+4: [No tracking data] concatenated_Pos2DC0.ome.tif
+5: [No tracking data] concatenated_Pos2DC1.ome.tif
+6: [No tracking data] concatenated_Pos1DC0.ome.tif
+7: [No tracking data] concatenated_Pos1DC1.ome.tif
+Done!
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[6]-Data-analysis">[6] Data analysis<a class="anchor-link" href="#[6]-Data-analysis">&#182;</a></h2><h4 id="Data-preparation">Data preparation<a class="anchor-link" href="#Data-preparation">&#182;</a></h4><ul>
+<li>Compute the overlay</li>
+<li>Overlay over time in DC'd movies</li>
+<li>Load segmentation if there is one</li>
+<li>Compute direction of the force -&gt; extract parallel and transverse motion</li>
+<li>Bind the environment of the locus, oriented</li>
+<li>Segment the cell</li>
+</ul>
+<p><strong>About the <code>ff_p</code> variable</strong>: this variable is defined in the file <code>config/config.cfg</code> and makes the correspondance between the given name of a forcefield, and the location of the file. It can handle many has the following structure:</p>
+<ul>
+<li>it is a dictionary, with the <em>key</em>: given name of the force field (str)</li>
+<li>the value is a tuple: <ul>
+<li>first field: relative path to the .tif file containing the 3D force field.</li>
+<li>second field: related to the number of dimensions of the file (not sure how, though)</li>
+<li>third field: whether orientation and pixel size exist in an adjacent .txt file</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## This step takes a lot of time :/ It may also contain a big memory leak...</span>
+<span class="n">chromag</span><span class="o">.</span><span class="n">export_csv</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">lf</span><span class="p">,</span> <span class="n">lfDC</span><span class="p">,</span> <span class="n">imgF</span><span class="p">,</span> <span class="n">r_force</span><span class="p">,</span> <span class="n">px_size</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> 
+                   <span class="n">ignore</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)],</span> <span class="c1"># [(1,0)] #3DC0, need to be added for Array7</span>
+                   <span class="n">ignore_missing</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                   <span class="n">select</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="c1">#  a pattern to select (e.g: &quot;Pos11_cell0&quot;)</span>
+                   <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">export_pdf</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[7]-Cell-segmentation">[7] Cell segmentation<a class="anchor-link" href="#[7]-Cell-segmentation">&#182;</a></h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[8]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">config_segment</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">segment_init</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;directory&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">])</span>
+<span class="n">segment</span><span class="o">.</span><span class="n">segment</span><span class="p">(</span><span class="n">config_segment</span><span class="p">,</span> <span class="n">force_overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># select=Pos2DC0, empty string to deactivate</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[8]-Analyzing-the-masks">[8] Analyzing the masks<a class="anchor-link" href="#[8]-Analyzing-the-masks">&#182;</a></h2><ul>
+<li>Next steps: </li>
+<li><ol>
+<li>make plots (locus, image, direction of the force, segmentation)</li>
+</ol>
+</li>
+<li><ol>
+<li>Add metrics to table</li>
+</ol>
+</li>
+<li><ol>
+<li>Compute the (x,y) coordinates of the centroid of the cell</li>
+</ol>
+</li>
+<li><ol>
+<li>Compute $(\bar Fx_n,\bar Fy_n,\bar Fz_n)$ basis vector, normalized and center it on the centroid</li>
+</ol>
+</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[17]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">chromag</span><span class="o">.</span><span class="n">export_csv2</span><span class="p">(</span><span class="n">config_segment</span><span class="p">,</span> <span class="c1"># export the &quot;_2.csv&quot; files</span>
+                    <span class="n">select</span><span class="o">=</span><span class="s2">&quot;Pos4DC0&quot;</span><span class="p">,</span> <span class="c1">#&quot;Pos25DC3&quot; (str, default: &#39;&#39;): a string pattern used to only process some files. For instance &#39;Pos0DC0&#39;. </span>
+                    <span class="n">select_f</span><span class="o">=</span><span class="p">[],</span> <span class="c1"># frame(s) to select, a list, -1 or empty list to process everything</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>processing 2/2
+Reading concatenated_Pos4DC0.ome.tif
+All done!
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[9]-Estimate-bleaching-over-time">[9] Estimate bleaching over time<a class="anchor-link" href="#[9]-Estimate-bleaching-over-time">&#182;</a></h2><p>For all the files, we want to compute the histogram of intensities, and see how it evolves over time, we will compute the mean signal and its standard deviation.</p>
+<ul>
+<li>We will create a dataframe for this</li>
+<li>We will then export several normalized files, named _normXXX, where XXX stands for the normalization technique. The normalized channel will be set in an additional channel. (optional, and will happen later)</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dff</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">bleach_correction</span><span class="p">(</span><span class="n">config_segment</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[10]-Export-_3.csv-file">[10] Export _3.csv file<a class="anchor-link" href="#[10]-Export-_3.csv-file">&#182;</a></h2><p>Here we merge all the files we need for the analysis. The files ending in _3.csv contain most of the information needed for data processing.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">chromag</span><span class="o">.</span><span class="n">export_csv3</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">dff</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;qc_mnp_file&#39;</span><span class="p">],</span> <span class="n">config_segment</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="[11]-Export-movies">[11] Export movies<a class="anchor-link" href="#[11]-Export-movies">&#182;</a></h2><p>We first export the movies without the overlays</p>
+<p>We then create a new folder: exports, that should contain:</p>
+<ul>
+<li>_rot_cLocus (with _norot and _rot1d variations)</li>
+<li>_rot_cCentroid (with _norot and _rot1d variations)</li>
+<li>_3.csv</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## This step takes a long time :)</span>
+
+<span class="n">exports</span> <span class="o">=</span> <span class="p">[</span> <span class="c1"># List here what we should export</span>
+    <span class="p">{</span><span class="s1">&#39;center&#39;</span><span class="p">:</span><span class="s1">&#39;centroid&#39;</span><span class="p">,</span> <span class="s1">&#39;rotated&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;save1d&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;cropsize&#39;</span><span class="p">:(</span><span class="mi">300</span><span class="p">,</span><span class="mi">300</span><span class="p">)},</span> <span class="c1"># *_rot_cCentroid</span>
+    <span class="p">{</span><span class="s1">&#39;center&#39;</span><span class="p">:</span><span class="s1">&#39;centroid&#39;</span><span class="p">,</span> <span class="s1">&#39;rotated&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;save1d&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;cropsize&#39;</span><span class="p">:(</span><span class="mi">300</span><span class="p">,</span><span class="mi">300</span><span class="p">)},</span>  <span class="c1"># *_rot1d_cCentroid</span>
+    <span class="c1">#{&#39;center&#39;:&#39;locus&#39;, &#39;rotated&#39;:True, &#39;save1d&#39;:False, &#39;cropsize&#39;:(300,300)},    # *_rot_cLocus</span>
+    <span class="c1">#{&#39;center&#39;:&#39;locus&#39;, &#39;rotated&#39;:True, &#39;save1d&#39;:True, &#39;cropsize&#39;:(300,300)},     # *_rot1d_cLocus</span>
+    <span class="c1">#{&#39;center&#39;:&#39;centroid&#39;, &#39;rotated&#39;:False, &#39;save1d&#39;:False, &#39;cropsize&#39;:(300,300)}, # *_norot_cCentroid</span>
+<span class="p">]</span>
+<span class="n">chromag</span><span class="o">.</span><span class="n">export_tif</span><span class="p">(</span><span class="n">config_segment</span><span class="p">,</span> <span class="n">exports</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">force_overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;directory_export&#39;</span><span class="p">],</span> <span class="n">excl</span> <span class="o">=</span> <span class="n">chromag</span><span class="o">.</span><span class="n">export_init</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="n">chromag</span><span class="o">.</span><span class="n">export_overlay</span><span class="p">(</span><span class="n">config_segment</span><span class="p">[</span><span class="s1">&#39;img_p&#39;</span><span class="p">],</span> <span class="n">exports</span><span class="p">,</span> <span class="n">excl</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> 
+                       <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">force_overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
 </div>
 </div>
 

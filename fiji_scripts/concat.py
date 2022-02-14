@@ -21,10 +21,18 @@ types = {ij.ImagePlus.COLOR_RGB : "RGB",
          ij.ImagePlus.COLOR_256 : "8-bit color"}
 
 ## === File checks
-lf = sys.argv[1:-2]
-of = sys.argv[-2] # output file
-tf = sys.argv[-1] # Address of the file of timestamps
+lf = sys.argv[1:-3]
+of = sys.argv[-3] # output file
+tf = sys.argv[-2] # Address of the file of timestamps
+ch = sys.argv[-1]
 
+if not ch.startswith("--channels="):
+    print "Last parameter should be either `--channels=all` or `--channels=[list of channel indices]"
+    sys.exit(1)
+if ch[11:]=='all':
+    chl=None
+else:
+    chl=[int(i) for i in ch[11:].strip('[]').replace('"', '').replace(' ', '').split(',')] # Parse a string to list
 ## DBG
 #lf = ['/data/CoulonLab/CoulonLab Dropbox/data/Laura/20190415/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_5/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_5_MMStack_Pos0.ome.tif','/data/CoulonLab/CoulonLab Dropbox/data/Laura/20190415/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_6/20190415_u2os_smallarray_tetRmCherry_sirDNA_Zstack_Injections_trials_6_MMStack_Pos0.ome.tif']
 print "Concatenating %i files" % len(lf)
@@ -73,28 +81,37 @@ else:
         imp = im[-1]
         imL.append(imp)
 
+nch=None
 for i in imL:
     print i.getTitle(), i.getNSlices(), i.getNChannels(), i.getNFrames()
+    if chl is None:
+       if nch is None:
+           nch = i.getNChannels()
+       elif i.getNChannels() != nch:
+           raise TypeError("Not all the files have the same sumber of channels, and --channels=all was specified")
+    else:
+        if i.getNChannels()<=max(chl):
+            raise IOError("Not enough frames to extract the right --channels in " + i.getTitle())
 
 ## === Add z planes
 maxZ = max([i.getNSlices() for i in imL])
-maxC = max([i.getNChannels() for i in imL])
+if chl is None:
+    maxC = max([i.getNChannels() for i in imL])
+else:
+    maxC = len(chl)
 ssL = [] # Same number of slices
 nff=True
 for im in imL:
+    if chl is not None: ## Here we extract only the channels we need
+        im = SubHyperstackMaker().makeSubhyperstack(im, [i+1 for i in chl], range(1, im.getNSlices()+1), range(1, im.getNFrames()+1))
     nz = maxZ-im.getNSlices() # Number of z planes to add
     if nz==0 and im.getNChannels()==maxC:
         ssL.append(im)
-        #pix = im.getProcessor().convertToFloat().getPixels()
-        # find out the minimal pixel value
-        #MI = reduce(max, pix)
-        #print "Case1", MI
         continue
     if im.getNFrames()==1:
         tmp = Duplicator().run(im, 1, im.getNChannels(), 1, 1, 1, 1) # create a duplicated slice
         tmp.getProcessor().multiply(0) # make it a dark frame    
         ssL.append(Concatenator().concatenate([im]+[tmp]*nz, False)) # This deletes references/images in imL
-        #print "Case 2"
     else: # if im.getNFrames()>1 (we need to concatenate time-point-per timepoint :s )
         nff=False        
         allFrames = []
@@ -120,7 +137,6 @@ for im in imL:
                         res.addSlice(str(icnt), stack.getProcessor(index))
         im2 = ij.ImagePlus('title', res)
         im2 = ij.plugin.HyperStackConverter().toHyperStack(im2,nC, maxZ, im.getNFrames())
-        #ij.plugin.HyperStackConverter().shuffle(im2, 5)
         ssL.append(im2)
 
 print "New dimensions:"
